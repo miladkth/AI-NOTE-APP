@@ -21,6 +21,4 @@ node dist/index.js
 starta Frontend:
 
 Högerklicka på index.html → Open with Live Server
-eller
 
-Klicka på ⚪ Go Live längst ner i VS Code
