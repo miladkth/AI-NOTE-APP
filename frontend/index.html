@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="sv" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text Summarizer - React + TypeScript</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <script defer src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script defer src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script defer src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-tr from-indigo-600 via-purple-700 to-pink-600 dark:from-gray-900 dark:via-gray-800 dark:to-black min-h-screen flex items-center justify-center p-6 transition-colors">
+  <div id="root" class="w-full max-w-3xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-3xl shadow-2xl p-10 sm:p-14 border border-white/20 text-black dark:text-white"></div>
+
+  <script type="text/babel" data-type="module" data-presets="typescript,react">
+    const { useState, useRef, useEffect } = React;
+
+    type ApiResponse = {
+      summary: string;
+    };
+
+    function App() {
+      const [text, setText] = useState('');
+      const [summary, setSummary] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [copied, setCopied] = useState(false);
+      const [isDark, setIsDark] = useState(true);
+
+      const textareaRef = useRef(null);
+
+      useEffect(() => {
+        textareaRef.current?.focus();
+        document.documentElement.classList.toggle('dark', isDark);
+      }, [isDark]);
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+        if (!text.trim()) return;
+        setLoading(true);
+        setError('');
+        setSummary('');
+        setCopied(false);
+        try {
+          const response = await fetch('http://localhost:3001/api/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+          });
+          if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+          const data = await response.json();
+          setSummary(data.summary);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function handleClear() {
+        setText('');
+        setSummary('');
+        setError('');
+        setCopied(false);
+        textareaRef.current?.focus();
+      }
+
+      async function handleCopy() {
+        try {
+          await navigator.clipboard.writeText(summary);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          setCopied(false);
+        }
+      }
+
+      const testSamples = [
+        {
+          id: 1,
+          label: "Kort berättelse",
+          text: "Solen gick ner bakom bergen och skogen badade i gyllene sken. Fåglarna kvittrade när vinden dansade genom träden."
+        },
+        {
+          id: 2,
+          label: "Tekniknyhet",
+          text: "Den nya mobiltelefonen har ett revolutionerande kamerasystem som anpassar sig efter ljusförhållanden och tar fantastiska bilder även i mörker."
+        },
+        {
+          id: 3,
+          label: "Historisk händelse",
+          text: "År 1969 landade människor på månen för första gången – ett stort steg för mänskligheten och rymdforskningen."
+        }
+      ];
+
+      function handleTestClick(sampleText) {
+        setText(sampleText);
+        setSummary('');
+        setError('');
+        setCopied(false);
+        textareaRef.current?.focus();
+      }
+
+      return (
+        <div>
+          <header className="mb-10 text-center">
+            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 drop-shadow-lg select-none">
+              Text Summarizer
+            </h1>
+            <p className="mt-3 text-gray-700 dark:text-gray-300 font-medium max-w-xl mx-auto">
+              Klistra in eller skriv en text så får du en sammanfattning direkt.
+            </p>
+            <button
+              onClick={() => setIsDark(prev => !prev)}
+              className="mt-4 text-sm text-pink-100 hover:underline"
+            >
+              Växla {isDark ? 'till ljust' : 'till mörkt'} läge
+            </button>
+          </header>
+
+          <div className="mb-8 max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">Exempeltexter</h2>
+            <div className="flex flex-wrap justify-center gap-4">
+              {testSamples.map(sample => (
+                <button
+                  key={sample.id}
+                  type="button"
+                  onClick={() => handleTestClick(sample.text)}
+                  className="px-6 py-3 rounded-full bg-gradient-to-r from-pink-500 to-yellow-400 text-white font-semibold shadow-md hover:brightness-110 transition select-none"
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl mx-auto">
+            <label htmlFor="textInput" className="block text-lg font-semibold">
+              Skriv text att sammanfatta
+            </label>
+            <textarea
+              ref={textareaRef}
+              id="textInput"
+              rows={8}
+              className="w-full rounded-2xl border border-gray-300 dark:border-gray-700 px-6 py-5 text-gray-900 dark:text-white bg-white dark:bg-gray-800 text-lg placeholder-gray-400 shadow-lg focus:outline-none focus:ring-4 focus:ring-pink-400 focus:border-pink-500 transition resize-none"
+              placeholder="Skriv något här..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              required
+              spellCheck={true}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center items-center gap-4 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold rounded-2xl py-5 shadow-xl transition disabled:opacity-60 disabled:cursor-not-allowed select-none text-xl"
+            >
+              {loading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin text-2xl"></i>
+                  <span>Sammanfattar...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-magic text-2xl"></i>
+                  <span>Sammanfatta</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center mt-4">
+            <button onClick={handleClear} className="text-pink-100 font-medium hover:underline">
+              Rensa text och resultat
+            </button>
+          </div>
+
+          {error && (
+            <div className="mt-10 flex items-center gap-4 bg-red-100 border border-red-400 text-red-700 rounded-2xl px-6 py-5 shadow-lg max-w-3xl mx-auto select-none">
+              <i className="fas fa-exclamation-circle text-3xl"></i>
+              <p className="font-semibold text-lg">{error}</p>
+            </div>
+          )}
+
+          {summary && (
+            <section className="mt-12 max-w-3xl mx-auto bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-900 rounded-3xl p-10 shadow-2xl border border-pink-300 select-text">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-extrabold flex items-center gap-4 select-none text-pink-600 dark:text-pink-300">
+                  <i className="fas fa-file-alt text-3xl"></i> Sammanfattning
+                </h2>
+                <button
+                  onClick={handleCopy}
+                  className="text-sm text-pink-600 dark:text-pink-300 hover:underline font-medium"
+                >
+                  {copied ? 'Kopierat!' : 'Kopiera'}
+                </button>
+              </div>
+              <p className="whitespace-pre-wrap text-lg leading-relaxed">{summary}</p>
+            </section>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
