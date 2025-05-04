@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="sv" class="dark">
+<html lang="sv">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Text Summarizer - React + TypeScript</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <script defer src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script defer src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -22,17 +29,15 @@
   <script type="text/babel" data-type="module" data-presets="typescript,react">
     const { useState, useRef, useEffect } = React;
 
-    type ApiResponse = {
-      summary: string;
-    };
-
     function App() {
       const [text, setText] = useState('');
       const [summary, setSummary] = useState('');
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
       const [copied, setCopied] = useState(false);
-      const [isDark, setIsDark] = useState(true);
+      const [isDark, setIsDark] = useState(() => {
+        return localStorage.getItem("dark-mode") === "true";
+      });
 
       const textareaRef = useRef(null);
 
@@ -41,7 +46,12 @@
       }, []);
 
       useEffect(() => {
-        document.documentElement.classList.toggle('dark', isDark);
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+        localStorage.setItem("dark-mode", String(isDark));
       }, [isDark]);
 
       async function handleSubmit(e) {
